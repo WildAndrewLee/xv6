@@ -503,11 +503,10 @@ void *edxAddr;
 // the volatile registers (eax, ecx, edx) on the stack.
 void signal_deliver(int signum)
 {
-	cprintf("Currently a division by 0\n");
 	//cprintf("signal handlers: %p\n", proc->signal_handlers[SIGFPE]);
 	//cprintf("register: %p\n", &proc->tf->eip);
 	//cprintf("register add: %p\n", &proc->tf->eip + 20);
-	
+	cprintf("signum [%d]\n", signum);	
 
 	// Saving registers pointers
 	espAddr = (void*) proc->tf->esp;
@@ -526,8 +525,8 @@ void signal_deliver(int signum)
 	cprintf("eip:[%d] eax:[%d] ecx:[%d] edx:[%d] \n", eipVal, eaxVal, ecxVal, edxVal);
 
 	// Stack pointer pointing to signal trampoline
-	espAddr = (void*) &proc->signal_trampoline;
-	eipAddr = (void*) &proc->signal_handlers[SIGFPE];
+	espAddr =  &proc->signal_trampoline;
+	eipAddr =  &proc->signal_handlers[SIGFPE];
 
 
 	cprintf("esp:[%p] eip:[%p] \n", espAddr, eipAddr);

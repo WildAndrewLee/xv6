@@ -49,19 +49,21 @@ trap(struct trapframe *tf)
 
   switch(tf->trapno){
   case T_DIVIDE:
-
-	/*
-	signal_deliver(SIGFPE);
-	break;
-	*/
-
-
 	cprintf("Division by 0\n");
 	cprintf("signal handler is at %x\n", proc->signal_handlers[SIGFPE]);
 	proc->tf->eip = (uint) proc->signal_handlers[SIGFPE];
+
+	// Adding some stuff to the stack
 	*((uint*) (proc->tf->esp - 4)) = SIGFPE;
 	*((uint*) (proc->tf->esp-8)) = (uint) proc->signal_trampoline;
 	proc->tf->esp -= 8;
+	
+	cprintf("SIGFPE: [%d]\n");
+	
+	if(SIGFPE > 0)
+	{
+		signal_deliver(SIGFPE);
+	}
 
 	return;
   case T_IRQ0 + IRQ_TIMER:
