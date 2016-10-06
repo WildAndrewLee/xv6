@@ -36,6 +36,7 @@ idtinit(void)
 void
 trap(struct trapframe *tf)
 {
+
   if(tf->trapno == T_SYSCALL){
     if(proc->killed)
       exit();
@@ -47,6 +48,10 @@ trap(struct trapframe *tf)
   }
 
   switch(tf->trapno){
+  case T_DIVIDE:
+     	
+	signal_deliver(SIGFPE);
+	break;
   case T_IRQ0 + IRQ_TIMER:
     if(cpunum() == 0){
       acquire(&tickslock);
@@ -77,12 +82,7 @@ trap(struct trapframe *tf)
             cpunum(), tf->cs, tf->eip);
     lapiceoi();
     break;
-  case T_DIVIDE:
-    if(proc->signal_handlers[SIGFPE] == NULL)
-      break;
 
-    // do stuff.
-    break;
   //PAGEBREAK: 13
   default:
     if(proc == 0 || (tf->cs&3) == 0){

@@ -491,16 +491,63 @@ sighandler_t signal_register_handler(int signum, sighandler_t handler, void *tra
   return previous;
 }
 
+
+
+void *espAddr;
+void *eipAddr;
+void *eaxAddr;
+void *ecxAddr;
+void *edxAddr;
+
 // This function must add the signal frame to the process stack, including saving
 // the volatile registers (eax, ecx, edx) on the stack.
 void signal_deliver(int signum)
 {
+	cprintf("Currently a division by 0\n");
+	//cprintf("signal handlers: %p\n", proc->signal_handlers[SIGFPE]);
+	//cprintf("register: %p\n", &proc->tf->eip);
+	//cprintf("register add: %p\n", &proc->tf->eip + 20);
+	
 
+	// Saving registers pointers
+	espAddr = (void*) proc->tf->esp;
+	eipAddr = (void*) proc->tf->eip;
+	eaxAddr = (void*) proc->tf->eax;
+	ecxAddr = (void*) proc->tf->ecx;
+	edxAddr = (void*) proc->tf->edx;
+
+	// Saving register values
+	int eipVal = (int)eipAddr;
+	int eaxVal = (int)eaxAddr;
+	int ecxVal = (int)ecxAddr;
+	int edxVal = (int)edxAddr;
+
+	cprintf("eip:[%p] eax:[%p] ecx:[%p] edx:[%p] \n", eipAddr, eaxAddr, ecxAddr, edxAddr);
+	cprintf("eip:[%d] eax:[%d] ecx:[%d] edx:[%d] \n", eipVal, eaxVal, ecxVal, edxVal);
+
+	// Stack pointer pointing to signal trampoline
+	espAddr = (void*) &proc->signal_trampoline;
+	eipAddr = (void*) &proc->signal_handlers[SIGFPE];
+
+
+	cprintf("esp:[%p] eip:[%p] \n", espAddr, eipAddr);
+	return;
 }
 
 // This function must clean up the signal frame from the stack and restore the volatile
 // registers (eax, ecx, edx).
 void signal_return(void)
-{
+{	
+	/*
+	proc->tf->eax = *eaxAddr;
+	proc->tf->ecx = *ecxAddr;
+	proc->tf->edx = *edxAddr;
 
+	// Restoring stack pointer
+	proc->tf->esp = *espAddr;
+
+	// Restoring eip pointer	
+	proc->tf->eip = *eipAddr;
+	*/
+	return;
 }
