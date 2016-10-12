@@ -495,12 +495,37 @@ sighandler_t signal_register_handler(int signum, sighandler_t handler, void *tra
 // the volatile registers (eax, ecx, edx) on the stack.
 void signal_deliver(int signum)
 {
+  // Get original ESP address.
+  uint esp = proc->tf->esp;
 
+  // Push register values on the stack.
+  proc->kstack[esp - sizeof(uint)] = proc->tf->eip;
+  proc->kstack[esp - sizeof(uint) * 2] = proc->tf->eax;
+  proc->kstack[esp - sizeof(uint) * 3] = proc->tf->ecx;
+  proc->kstack[esp - sizeof(uint) * 4] = proc->tf->edx;
+  proc->kstack[esp - sizeof(uint) * 5] = signum;
+  proc->kstack[esp - sizeof(uint) * 6] = proc->signal_trampoline;
+
+  // Update ESP to point to signal trampoline.
+  proc->tf->esp -= sizeof(uint) * 6; // Should be 24 bytes
+  
+  // Change current instruction pointer to signal handler.
+  proc->tf->eip = (uint) proc->signal_handlers[SIGFPE];
+
+  return;
 }
 
 // This function must clean up the signal frame from the stack and restore the volatile
 // registers (eax, ecx, edx).
 void signal_return(void)
-{
+{	
+  uint esp = proc->tf->esp;
 
+  proc->tf->edx = proc->kstack[esp + sizeof(uint) * 2];
+  proc->tf->ecx = proc->kstack[esp + sizeof(uint) * 3];
+  proc->tf->eax = proc->kstack[esp + sizeof(uint) * 4];
+  proc->tf->eip = proc->kstack[esp + sizeof(uint) * 5];
+  proc->tf->esp = proc->kstack[esp + sizeof(uint) * 6];
+
+	return;
 }
