@@ -491,62 +491,41 @@ sighandler_t signal_register_handler(int signum, sighandler_t handler, void *tra
   return previous;
 }
 
-
-
-void *espAddr;
-void *eipAddr;
-void *eaxAddr;
-void *ecxAddr;
-void *edxAddr;
-
 // This function must add the signal frame to the process stack, including saving
 // the volatile registers (eax, ecx, edx) on the stack.
 void signal_deliver(int signum)
 {
-	//cprintf("signal handlers: %p\n", proc->signal_handlers[SIGFPE]);
-	//cprintf("register: %p\n", &proc->tf->eip);
-	//cprintf("register add: %p\n", &proc->tf->eip + 20);
-	cprintf("signum [%d]\n", signum);	
+  // Get original ESP address.
+  uint esp = proc->tf->esp;
 
-	// Saving registers pointers
-	espAddr = (void*) proc->tf->esp;
-	eipAddr = (void*) proc->tf->eip;
-	eaxAddr = (void*) proc->tf->eax;
-	ecxAddr = (void*) proc->tf->ecx;
-	edxAddr = (void*) proc->tf->edx;
+  // Push register values on the stack.
+  proc->kstack[esp - sizeof(uint)] = proc->tf->eip;
+  proc->kstack[esp - sizeof(uint) * 2] = proc->tf->eax;
+  proc->kstack[esp - sizeof(uint) * 3] = proc->tf->ecx;
+  proc->kstack[esp - sizeof(uint) * 4] = proc->tf->edx;
+  proc->kstack[esp - sizeof(uint) * 5] = signum;
+  proc->kstack[esp - sizeof(uint) * 6] = proc->signal_trampoline;
 
-	// Saving register values
-	int eipVal = (int)eipAddr;
-	int eaxVal = (int)eaxAddr;
-	int ecxVal = (int)ecxAddr;
-	int edxVal = (int)edxAddr;
+  // Update ESP to point to signal trampoline.
+  proc->tf->esp -= sizeof(uint) * 6; // Should be 24 bytes
+  
+  // Change current instruction pointer to signal handler.
+  proc->tf->eip = (uint) proc->signal_handlers[SIGFPE];
 
-	cprintf("eip:[%p] eax:[%p] ecx:[%p] edx:[%p] \n", eipAddr, eaxAddr, ecxAddr, edxAddr);
-	cprintf("eip:[%d] eax:[%d] ecx:[%d] edx:[%d] \n", eipVal, eaxVal, ecxVal, edxVal);
-
-	// Stack pointer pointing to signal trampoline
-	espAddr =  &proc->signal_trampoline;
-	eipAddr =  &proc->signal_handlers[SIGFPE];
-
-
-	cprintf("esp:[%p] eip:[%p] \n", espAddr, eipAddr);
-	return;
+  return;
 }
 
 // This function must clean up the signal frame from the stack and restore the volatile
 // registers (eax, ecx, edx).
 void signal_return(void)
 {	
-	/*
-	proc->tf->eax = *eaxAddr;
-	proc->tf->ecx = *ecxAddr;
-	proc->tf->edx = *edxAddr;
+  uint esp = proc->tf->esp;
 
-	// Restoring stack pointer
-	proc->tf->esp = *espAddr;
+  proc->tf->edx = proc->kstack[esp + sizeof(uint) * 2];
+  proc->tf->ecx = proc->kstack[esp + sizeof(uint) * 3];
+  proc->tf->eax = proc->kstack[esp + sizeof(uint) * 4];
+  proc->tf->eip = proc->kstack[esp + sizeof(uint) * 5];
+  proc->tf->esp = proc->kstack[esp + sizeof(uint) * 6];
 
-	// Restoring eip pointer	
-	proc->tf->eip = *eipAddr;
-	*/
 	return;
 }
