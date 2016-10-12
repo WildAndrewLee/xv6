@@ -49,9 +49,14 @@ trap(struct trapframe *tf)
 
   switch(tf->trapno){
   case T_DIVIDE:
+    cprintf("SIGFPE: %d\n", SIGFPE);
+    cprintf("T_DIVIDE: %d\n", T_DIVIDE);
     if(proc->signal_handlers[SIGFPE]){
         cprintf("Executing signal handler\n");
         signal_deliver(SIGFPE);
+    }
+    else{
+        exit();
     }
     break;
   case T_IRQ0 + IRQ_TIMER:

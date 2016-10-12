@@ -534,7 +534,7 @@ void signal_return(void)
   proc->tf->edx = proc->kstack[esp + 8];
   proc->tf->ecx = proc->kstack[esp + 12];
   proc->tf->eax = proc->kstack[esp + 16];
-  proc->tf->eip = proc->kstack[esp + 20];
+  proc->tf->eip = proc->kstack[esp + 20] + 4;
   proc->tf->esp += 24;
 
   cprintf("ESP restored to %d\n", proc->tf->esp);
