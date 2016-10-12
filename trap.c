@@ -49,7 +49,8 @@ trap(struct trapframe *tf)
 
   switch(tf->trapno){
   case T_DIVIDE:
-    if(proc->signal handlers[SIGFPE]){
+    if(proc->signal_handlers[SIGFPE]){
+        cprintf("Executing signal handler\n");
         signal_deliver(SIGFPE);
     }
     break;

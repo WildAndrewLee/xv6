@@ -495,22 +495,30 @@ sighandler_t signal_register_handler(int signum, sighandler_t handler, void *tra
 // the volatile registers (eax, ecx, edx) on the stack.
 void signal_deliver(int signum)
 {
+  cprintf("Executing signal_deliver\n");
+
   // Get original ESP address.
   uint esp = proc->tf->esp;
 
-  // Push register values on the stack.
-  proc->kstack[esp - sizeof(uint)] = proc->tf->eip;
-  proc->kstack[esp - sizeof(uint) * 2] = proc->tf->eax;
-  proc->kstack[esp - sizeof(uint) * 3] = proc->tf->ecx;
-  proc->kstack[esp - sizeof(uint) * 4] = proc->tf->edx;
-  proc->kstack[esp - sizeof(uint) * 5] = signum;
-  proc->kstack[esp - sizeof(uint) * 6] = proc->signal_trampoline;
+  cprintf("ESP is %d\n", esp);
+  cprintf("EIP is %d\n", proc->tf->eip);
 
-  // Update ESP to point to signal trampoline.
-  proc->tf->esp -= sizeof(uint) * 6; // Should be 24 bytes
+  // Push register values on the stack.
+  proc->kstack[esp - 4] = proc->tf->eip;
+  proc->kstack[esp - 8] = proc->tf->eax;
+  proc->kstack[esp - 12] = proc->tf->ecx;
+  proc->kstack[esp - 16] = proc->tf->edx;
+  proc->kstack[esp - 20] = signum;
+  proc->kstack[esp - 24] = *((uint*) proc->signal_trampoline);
+
+  // Update ESP to point to signal trampoline address in stack.
+  proc->tf->esp -= 24; // Should be 24 bytes
   
   // Change current instruction pointer to signal handler.
   proc->tf->eip = (uint) proc->signal_handlers[SIGFPE];
+
+  cprintf("ESP set to %d\n", proc->tf->esp);
+  cprintf("EIP set to %d\n", proc->tf->eip);
 
   return;
 }
@@ -519,13 +527,19 @@ void signal_deliver(int signum)
 // registers (eax, ecx, edx).
 void signal_return(void)
 {	
+  cprintf("Executing signal return\n");
+
   uint esp = proc->tf->esp;
 
-  proc->tf->edx = proc->kstack[esp + sizeof(uint) * 2];
-  proc->tf->ecx = proc->kstack[esp + sizeof(uint) * 3];
-  proc->tf->eax = proc->kstack[esp + sizeof(uint) * 4];
-  proc->tf->eip = proc->kstack[esp + sizeof(uint) * 5];
-  proc->tf->esp = proc->kstack[esp + sizeof(uint) * 6];
+  proc->tf->edx = proc->kstack[esp + 8];
+  proc->tf->ecx = proc->kstack[esp + 12];
+  proc->tf->eax = proc->kstack[esp + 16];
+  proc->tf->eip = proc->kstack[esp + 20];
+  proc->tf->esp += 24;
 
-	return;
+  cprintf("ESP restored to %d\n", proc->tf->esp);
+  cprintf("EIP restored to %d\n", proc->tf->eip);
+  cprintf("---\n");
+
+  return;
 }
